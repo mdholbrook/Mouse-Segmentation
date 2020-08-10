@@ -84,7 +84,7 @@ def display(data, model):
 
     plt.ion()
     plt.axis('off')
-    plt.figure(0)
+    plt.figure(4)
 
     print(len(predictions[0][0][0]))
 
@@ -144,34 +144,33 @@ def display(data, model):
 
 
 def main():
-    with tf.device('GPU:1'):
-        input_layer = keras.layers.Input(shape=(100, 148, 1))
-        conv1a = keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same')(input_layer)
-        conv1b = keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same')(conv1a)
-        pool1 = keras.layers.MaxPool2D(pool_size=(2, 2))(conv1b)
-        conv2a = keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding='same')(pool1)
-        conv2b = keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding='same')(conv2a)
-        pool2 = keras.layers.MaxPool2D(pool_size=(2, 2))(conv2b)
-        conv3a = keras.layers.Conv2D(filters=96, kernel_size=(3, 3), activation='relu', padding='same')(pool2)
-        conv3b = keras.layers.Conv2D(filters=96, kernel_size=(3, 3), activation='relu', padding='same')(conv3a)
+    input_layer = keras.layers.Input(shape=(100, 148, 1))
+    conv1a = keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same')(input_layer)
+    conv1b = keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same')(conv1a)
+    pool1 = keras.layers.MaxPool2D(pool_size=(2, 2))(conv1b)
+    conv2a = keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding='same')(pool1)
+    conv2b = keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding='same')(conv2a)
+    pool2 = keras.layers.MaxPool2D(pool_size=(2, 2))(conv2b)
+    conv3a = keras.layers.Conv2D(filters=96, kernel_size=(3, 3), activation='relu', padding='same')(pool2)
+    conv3b = keras.layers.Conv2D(filters=96, kernel_size=(3, 3), activation='relu', padding='same')(conv3a)
 
-        dconv3a = keras.layers.Conv2DTranspose(filters=96, kernel_size=(3, 3), padding='same')(conv3b)
-        dconv3b = keras.layers.Conv2DTranspose(filters=96, kernel_size=(3, 3), padding='same')(dconv3a)
-        unpool2 = keras.layers.UpSampling2D(size=(2, 2))(dconv3b)
-        cat2 = keras.layers.concatenate([conv2b, unpool2])
-        dconv2a = keras.layers.Conv2DTranspose(filters=64, kernel_size=(3, 3), padding='same')(cat2)
-        dconv2b = keras.layers.Conv2DTranspose(filters=64, kernel_size=(3, 3), padding='same')(dconv2a)
-        unpool1 = keras.layers.UpSampling2D(size=(2, 2))(dconv2b)
-        cat1 = keras.layers.concatenate([conv1b, unpool1])
-        dconv1a = keras.layers.Conv2DTranspose(filters=32, kernel_size=(3, 3), padding='same')(cat1)
-        dconv1b = keras.layers.Conv2DTranspose(filters=32, kernel_size=(3, 3), padding='same')(dconv1a)
+    dconv3a = keras.layers.Conv2DTranspose(filters=96, kernel_size=(3, 3), padding='same')(conv3b)
+    dconv3b = keras.layers.Conv2DTranspose(filters=96, kernel_size=(3, 3), padding='same')(dconv3a)
+    unpool2 = keras.layers.UpSampling2D(size=(2, 2))(dconv3b)
+    cat2 = keras.layers.concatenate([conv2b, unpool2])
+    dconv2a = keras.layers.Conv2DTranspose(filters=64, kernel_size=(3, 3), padding='same')(cat2)
+    dconv2b = keras.layers.Conv2DTranspose(filters=64, kernel_size=(3, 3), padding='same')(dconv2a)
+    unpool1 = keras.layers.UpSampling2D(size=(2, 2))(dconv2b)
+    cat1 = keras.layers.concatenate([conv1b, unpool1])
+    dconv1a = keras.layers.Conv2DTranspose(filters=32, kernel_size=(3, 3), padding='same')(cat1)
+    dconv1b = keras.layers.Conv2DTranspose(filters=32, kernel_size=(3, 3), padding='same')(dconv1a)
 
-        output = keras.layers.Conv2D(filters=1, kernel_size=(3, 3), activation='sigmoid', padding='same')(dconv1b)
+    output = keras.layers.Conv2D(filters=1, kernel_size=(3, 3), activation='sigmoid', padding='same')(dconv1b)
 
-        cp_callback = keras.callbacks.ModelCheckpoint(filepath=os.path.join(dirnam, "models/cp-{epoch:04d}.ckpt"), verbose=1,     save_weights_only=True, period=10)
-        model = keras.models.Model(inputs=input_layer, output=output)
-        opt = keras.optimizers.Adam()
-        model.compile(optimizer=opt, loss='binary_crossentropy', metrics=[keras.metrics.binary_accuracy, dice_metric])
+    cp_callback = keras.callbacks.ModelCheckpoint(filepath=os.path.join(dirnam, "models/cp-{epoch:04d}.ckpt"), verbose=1, save_weights_only=True, period=10)
+    model = keras.models.Model(inputs=input_layer, output=output)
+    opt = keras.optimizers.Adam(learning_rate=0.0005)
+    model.compile(optimizer=opt, loss='binary_crossentropy', metrics=[keras.metrics.binary_accuracy, dice_metric])
 
     arrayData, arrayTruth = getData()
     arrayData = np.rot90(arrayData, axes=(1, 3))
@@ -186,17 +185,17 @@ def main():
     plt.figure(1)
     plt.plot(xvals, history.history['binary_accuracy'])
     plt.savefig('plotAccuracy.png')
-    np.savetxt("Accuracy.csv", history.history['binary_accuracy'], delimiter=",")
+    np.savetxt(os.path.join(dirnam, "Accuracy.csv"), history.history['binary_accuracy'], delimiter=",")
 
-    plt.figure(1)
+    plt.figure(2)
     plt.plot(xvals, history.history['loss'])
     plt.savefig('plotLoss.png')
-    np.savetxt("Loss.csv", history.history['loss'], delimiter=",")
+    np.savetxt(os.path.join(dirnam, "Loss.csv"), history.history['loss'], delimiter=",")
 
-    plt.figure(1)
+    plt.figure(3)
     plt.plot(xvals, history.history['dice_metric'])
     plt.savefig('plotDice.png')
-    np.savetxt("Dice.csv", history.history['dice_metric'], delimiter=",")
+    np.savetxt(os.path.join(dirnam, "Dice.csv"), history.history['dice_metric'], delimiter=",")
 
     display(arrayData, model)
 
